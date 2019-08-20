@@ -1,13 +1,13 @@
-require_relative 'rmq'
-require 'bunny'
+require_relative "rmq"
+require "bunny"
 MAX_RETRIES = 3
 BASE_RETRY_DELAY = 3000
 ch = rmq_connect
 
 def build_rabbitmq_topology(ch)
-  @nanit_users_ex          = ch.direct   "nanit.users"
-  @mailman_users_created_q = ch.queue    "mailman.users.created"
-  @nanit_users_retry_ex    = ch.exchange "nanit.users.retry", {type: "x-delayed-message", arguments: {"x-delayed-type" => "direct"}}
+  @nanit_users_ex = ch.direct "nanit.users"
+  @mailman_users_created_q = ch.queue "mailman.users.created"
+  @nanit_users_retry_ex = ch.exchange "nanit.users.retry", { type: "x-delayed-message", arguments: { "x-delayed-type" => "direct" } }
 
   @mailman_users_created_q.bind(@nanit_users_ex, routing_key: "created")
   @mailman_users_created_q.bind(@nanit_users_retry_ex, routing_key: "mailman.users.created")
@@ -22,9 +22,9 @@ def start_subscriber(ch)
     if retry_count < MAX_RETRIES
       retry_delay = BASE_RETRY_DELAY * (retry_count + 1)
       putsi "publishing to retry (delayed) exchange with #{retry_delay / 1000}s delay "
-      @nanit_users_retry_ex.publish(payload, routing_key: queue_name, headers: {"x-retries" => retry_count + 1, "x-delay" => retry_delay})
+      @nanit_users_retry_ex.publish(payload, routing_key: queue_name, headers: { "x-retries" => retry_count + 1, "x-delay" => retry_delay })
     else
-      putsi "max retries reached - throwing message";
+      putsi "max retries reached - throwing message"
     end
   end
 end
@@ -36,5 +36,3 @@ start_subscriber(ch)
 sleep 21
 
 puts "#{time} Bye"
-
-

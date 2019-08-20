@@ -1,17 +1,17 @@
-require_relative 'rmq'
-require 'bunny'
+require_relative "rmq"
+require "bunny"
 MAX_RETRIES = 3
-RETRY_DELAY=5000
+RETRY_DELAY = 5000
 ch = rmq_connect
 
 def build_rabbitmq_topology(ch)
-  @nanit_users_ex          = ch.direct "nanit.users"
-  @mailman_users_created_q = ch.queue  "mailman.users.created", arguments: {"x-dead-letter-exchange" => "nanit.users.retry1", "x-dead-letter-routing-key" => "mailman.users.created"}
-  @nanit_users_retry1_ex   = ch.direct "nanit.users.retry1"
-  @nanit_users_retry_q     = ch.queue  "nanit.users.wait_queue", arguments: { "x-message-ttl" => RETRY_DELAY, "x-dead-letter-exchange" => "nanit.users.retry2"}
-  @nanit_users_retry2_ex   = ch.direct "nanit.users.retry2"
+  @nanit_users_ex = ch.direct "nanit.users"
+  @mailman_users_created_q = ch.queue "mailman.users.created", arguments: { "x-dead-letter-exchange" => "nanit.users.retry1", "x-dead-letter-routing-key" => "mailman.users.created" }
+  @nanit_users_retry1_ex = ch.direct "nanit.users.retry1"
+  @nanit_users_retry_q = ch.queue "nanit.users.wait_queue", arguments: { "x-message-ttl" => RETRY_DELAY, "x-dead-letter-exchange" => "nanit.users.retry2" }
+  @nanit_users_retry2_ex = ch.direct "nanit.users.retry2"
 
-  @nanit_users_retry_q.bind     @nanit_users_retry1_ex, routing_key: "mailman.users.created"
+  @nanit_users_retry_q.bind @nanit_users_retry1_ex, routing_key: "mailman.users.created"
   @mailman_users_created_q.bind @nanit_users_ex, routing_key: "created"
   @mailman_users_created_q.bind @nanit_users_retry2_ex, routing_key: "mailman.users.created"
 end
